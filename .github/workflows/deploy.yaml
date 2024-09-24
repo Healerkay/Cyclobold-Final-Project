@@ -18,133 +18,139 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Checkout the code
-    - name: Checkout code
-      uses: actions/checkout@v2
+      # Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    # Install PHP with dependencies
-    - name: Install PHP & Dependencies
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.1'
-        extensions: mbstring, pdo, mysql
+      # Install PHP with dependencies
+      - name: Install PHP & Dependencies
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, pdo, mysql
   
 
   Code-Analysis:
     runs-on: ubuntu-latest
     needs: build
     
-    steps:      
+    steps:    
+      - name: Install SonarQube Scanner
+        run: |
+          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip
+          unzip sonar-scanner-cli-4.6.2.2472-linux.zip
+          mv sonar-scanner-4.6.2.2472-linux sonar-scanner
+          echo "SONAR_SCANNER_HOME=$(pwd)/sonar-scanner" >> $GITHUB_ENV
+          echo "$(pwd)/sonar-scanner/bin" >> $GITHUB_PATH
 
-    # Static Code Analysis using SonarQube
-    - name: SonarQube Scan
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: |
-        sonar-scanner \
-          -Dsonar.projectKey=my-php-app \  
-          -Dsonar.sources=. \
-          -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
-          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+      # Static Code Analysis using SonarQube
+      - name: SonarQube Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_SCANNER_HOME: ${{ env.SONAR_SCANNER_HOME }}
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=my-php-app \
+            -Dsonar.sources=. \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}  
 
-    # Run OWASP Dependency Check
-    - name: OWASP Dependency Check
-      run: |
-        docker run --rm \
-          --volume $(pwd):/src \
-          owasp/dependency-check:latest \
-          --project "My PHP App" \
-          --scan /src
+      # Run OWASP Dependency Check
+      - name: OWASP Dependency Check
+        run: |
+          docker run --rm \
+            --volume $(pwd):/src \
+            owasp/dependency-check:latest \
+            --project "My PHP App" \
+            --scan /src
 
   Docker-Image:
     runs-on: ubuntu-latest
     needs: Code-Analysis
     
     steps:        
+      # Generate a random tag for the Docker image version
+      - name: Generate Random Tag Number
+        run: echo "VERSION=${RANDOM}" >> $GITHUB_ENV 
 
-    # Generate a random tag for the Docker image version
-    - name: Generate Random Tag Number
-      run: echo "VERSION=${RANDOM}" >> $GITHUB_ENV 
+      # Log in to Docker Hub
+      - name: Log into Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-    # Log in to Docker Hub
-    - name: Log into Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      # Build Docker image
+      - name: Build Docker Image
+        run: docker build -t my-php-app:${{ env.VERSION }} .
 
-    # Build Docker image
-    - name: Build Docker Image
-      run: docker build -t my-php-app:${{ env.VERSION }} .
+      # Trivy Scan for Docker Image vulnerabilities
+      - name: Trivy Scan Docker Image
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image my-php-app:${{ env.VERSION }}
 
-    # Trivy Scan for Docker Image vulnerabilities
-    - name: Trivy Scan Docker Image
-      run: |
-        docker run --rm \
-          -v /var/run/docker.sock:/var/run/docker.sock \
-          aquasec/trivy:latest image my-php-app:${{ env.VERSION }}
+      # Tag the Docker image for Docker Hub
+      - name: Tag Docker Image
+        run: docker tag my-php-app:${{ env.VERSION }} my-dockerhub-username/my-php-app:${{ env.VERSION }}
 
-    # Tag the Docker image for Docker Hub
-    - name: Tag Docker Image
-      run: docker tag my-php-app:${{ env.VERSION }} my-dockerhub-username/my-php-app:${{ env.VERSION }}
+      # Push the Docker image to Docker Hub
+      - name: Push Docker Image
+        run: docker push my-dockerhub-username/my-php-app:${{ env.VERSION }}
 
-    # Push the Docker image to Docker Hub
-    - name: Push Docker Image
-      run: docker push my-dockerhub-username/my-php-app:${{ env.VERSION }}
+      # Install kubectl to interact with EKS
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: "v1.19.3"
 
-    # Install kubectl to interact with EKS
-    - name: Install kubectl
-      uses: azure/setup-kubectl@v3
-      with:
-        version: "v1.19.3"
+      # Setup AWS Credentials for EKS
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with: 
+          aws-region: "us-east-1"
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
 
-    # Setup AWS Credentials for EKS
-    - name: Setup AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with: 
-        aws-region: "us-east-1"
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+      # Connect to EKS cluster
+      - name: Connect to EKS Cluster
+        run: aws eks update-kubeconfig --name cluster
 
-    # Connect to EKS cluster
-    - name: Connect to EKS Cluster
-      run: aws eks update-kubeconfig --name cluster
-
-    # Install Helm for managing deployments
-    - name: Install Helm
-      uses: azure/setup-helm@v4.2.0
+      # Install Helm for managing deployments
+      - name: Install Helm
+        uses: azure/setup-helm@v4.2.0
 
   Deployment:
     runs-on: ubuntu-latest
     needs: Docker-Image
     
     steps:    
-
-    # Use Helm to install or upgrade the application
-    - name: Deploy with Helm
-      run: |
-        helm upgrade --install myapp myapp -f shopping/values.yaml \
-        --set image.tag=${{ env.VERSION }} --set replicaCount=3
+      # Use Helm to install or upgrade the application
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install myapp myapp -f shopping/values.yaml \
+          --set image.tag=${{ env.VERSION }} --set replicaCount=3
 
   Email-Notification:
     runs-on: ubuntu-latest
     needs: Deployment
     
     steps:      
+      # Send Email Notification
+      - name: Announce the Latest Deployment Version
+        uses: dawidd6/action-send-mail@v3
+        with:
+          username: taykeny94@gmail.com
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          subject: "New Docker Image Version for PHP App"
+          to: "abatankehinde1999@gmail.com"
+          from: Healer taykeny94@gmail.com
+          body: "New image build version: ${{ env.VERSION }}"
 
-    # Send Email Notification
-    - name: Announce the Latest Deployment Version
-      uses: dawidd6/action-send-mail@v3
-      with:
-        username: taykeny94@gmail.com
-        password: ${{ secrets.EMAIL_PASSWORD }}
-        server_address: smtp.gmail.com
-        server_port: 465
-        secure: true
-        subject: "New Docker Image Version for PHP App"
-        to: "abatankehinde1999@gmail.com"
-        from: Healer taykeny94@gmail.com
-        body: "New image build version: ${{ env.VERSION }}"
 
 
       
