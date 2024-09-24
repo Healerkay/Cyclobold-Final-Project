@@ -10,8 +10,7 @@ on:
     paths-ignore:
       - 'README.md'
       - 'charts/**'
-      - 'Dockerfile'
-      - 'images/**'
+      - 'dockerfile'
 
 jobs:
   build:
