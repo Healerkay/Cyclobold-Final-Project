@@ -138,6 +138,7 @@ jobs:
     
     steps:      
       # Send Email Notification
+      
       - name: Announce the Latest Deployment Version
         uses: dawidd6/action-send-mail@v3
         with:
