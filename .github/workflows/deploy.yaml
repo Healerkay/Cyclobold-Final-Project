@@ -81,8 +81,12 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       # Build Docker image
-      - name: Build Docker Image
-        run: docker build -t healer/shoe:${{ env.VERSION }} .
+      - name: "Build and Push Docker Image"
+        env:
+          IMAGE_NAME: shoe
+          USERNAME: healerkay
+        run: |
+          docker build -t $USERNAME/$IMAGE_NAME:${{ env.VERSION }} .
 
       # Trivy Scan for Docker Image vulnerabilities
       - name: Trivy Scan Docker Image
@@ -91,13 +95,10 @@ jobs:
             -v /var/run/docker.sock:/var/run/docker.sock \
             aquasec/trivy:latest image healer/shoe:${{ env.VERSION }}
 
-      # Tag the Docker image for Docker Hub
-      - name: Tag Docker Image
-        run: docker tag healer/shoe:${{ env.VERSION }} healerkay/shoe:${{ env.VERSION }}
 
       # Push the Docker image to Docker Hub
       - name: Push Docker Image
-        run: docker push healerkay/shoe:${{ env.VERSION }}
+        run: docker push $USERNAME/$IMAGE_NAME:${{ env.VERSION }}
 
       # Install kubectl to interact with EKS
       - name: Install kubectl
@@ -138,7 +139,7 @@ jobs:
     
     steps:      
       # Send Email Notification
-      
+
       - name: Announce the Latest Deployment Version
         uses: dawidd6/action-send-mail@v3
         with:
