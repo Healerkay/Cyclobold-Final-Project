@@ -85,7 +85,7 @@ jobs:
           IMAGE_NAME: shoe
           USERNAME: healerkay
         run: |
-          docker build -t $USERNAME/$IMAGE_NAME:${{ env.VERSION }} -f /Users/user/project-work/dockerfile .
+          docker build -t $USERNAME/$IMAGE_NAME:${{ env.VERSION }} -f ./dockerfile .
 
       # Trivy Scan for Docker Image vulnerabilities
       - name: Trivy Scan Docker Image
