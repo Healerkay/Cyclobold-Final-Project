@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shoe-cart
+spec:
+  selector:
+    matchLabels:
+      app: shoe-cart
+  template:
+    metadata:
+      labels:
+        app: shoe-cart
+    spec:
+      containers:
+      - name: shoe-cart
+        image: healerkay/shoe:1
+        ports:
+        - containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shoe-cart-service
+spec:
+  selector:
+    app: shoe-cart
+  ports:
+  - port: 80
+    targetPort: 80
+  type: NodePort
+
