@@ -28,63 +28,89 @@ jobs:
           php-version: '8.1'
           extensions: mbstring, pdo, mysql
 
-      - name: Generate random tag number
-        run: |
-          echo "VERSION=${RANDOM}" >> $GITHUB_ENV 
 
-      - name: Logging into Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+  Code-Analysis:
+      runs-on: ubuntu-latest
+      needs: build
+        
+      steps:    
+              - name: Install SonarQube Scanner
+                run: |
+                  wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip
+                  unzip sonar-scanner-cli-4.6.2.2472-linux.zip
+                  mv sonar-scanner-4.6.2.2472-linux sonar-scanner
+                  echo "SONAR_SCANNER_HOME=$(pwd)/sonar-scanner" >> $GITHUB_ENV
+                  echo "$(pwd)/sonar-scanner/bin" >> $GITHUB_PATH
+        
+              # Static Code Analysis using SonarQube
+              - name: SonarQube Scan
+                env:
+                  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+                  SONAR_SCANNER_HOME: ${{ env.SONAR_SCANNER_HOME }}
+                run: |
+                  sonar-scanner \
+                    -Dsonar.projectKey=my-php-app \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+                    -Dsonar.login=${{ secrets.SONAR_TOKEN }}         
 
-      - name: "Build and Push Docker Image"
-        env:
-          IMAGE_NAME: shopping
-          USERNAME: abatan
-        run: |
-          docker build -t $USERNAME/$IMAGE_NAME:${{ env.VERSION }} .
-          docker push $USERNAME/$IMAGE_NAME:${{ env.VERSION }}
+              - name: Generate random tag number
+                run: |
+                  echo "VERSION=${RANDOM}" >> $GITHUB_ENV 
 
-      - name: "Install kubectl"
-        uses: azure/setup-kubectl@v3
-        with: 
-          version: "v1.19.3"
-        id: "install-kubectl"
+              - name: Logging into Docker Hub
+                uses: docker/login-action@v3
+                with:
+                  username: ${{ secrets.DOCKERHUB_USERNAME }}
+                  password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: "Setup AWS Credentials"
-        uses: aws-actions/configure-aws-credentials@v4
-        with: 
-          aws-region: "us-east-1"
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+              - name: "Build and Push Docker Image"
+                env:
+                  IMAGE_NAME: shopping
+                  USERNAME: abatan
+                run: |
+                  docker build -t $USERNAME/$IMAGE_NAME:${{ env.VERSION }} .
+                  docker push $USERNAME/$IMAGE_NAME:${{ env.VERSION }}
 
-      - name: "Connect to the EKS Cluster"
-        run: |
-          aws eks update-kubeconfig --name cluster
+              - name: "Install kubectl"
+                uses: azure/setup-kubectl@v3
+                with: 
+                  version: "v1.19.3"
+                id: "install-kubectl"
 
-      - name: "Install Helm"
-        uses: azure/setup-helm@v4.2.0
-        id: "install-helm"
+              - name: "Setup AWS Credentials"
+                uses: aws-actions/configure-aws-credentials@v4
+                with: 
+                  aws-region: "us-east-1"
+                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+                  aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
 
-      - name: "Deploy Application via Helm"
-        run: |
-          helm upgrade --install shopping-app shopping/ -f shopping/values.yaml \
-            --set image.tag=${{ env.VERSION }} \
-            --set replicaCount=3
+              - name: "Connect to the EKS Cluster"
+                run: |
+                  aws eks update-kubeconfig --name cluster
 
-      - name: "Announce the Latest Deployment Version"
-        uses: dawidd6/action-send-mail@v3
-        with:
-          username: taykeny94@gmail
-          password: ${{ secrets.EMAIL_PASSWORD }}
-          server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
-          subject: "New Docker Image Version for Shopping Web App"
-          to: "abatankehinde1999@gmail.com"
-          from: Healer <taykeny94@gmail>
-          body: "New image build: ${{ env.VERSION }}"
+              - name: "Install Helm"
+                uses: azure/setup-helm@v4.2.0
+                id: "install-helm"
+
+              - name: "Deploy Application via Helm"
+                run: |
+                  helm upgrade --install shopping-app shopping/ -f shopping/values.yaml \
+                    --set image.tag=${{ env.VERSION }} \
+                    --set replicaCount=3
+
+              - name: "Announce the Latest Deployment Version"
+                uses: dawidd6/action-send-mail@v3
+                with:
+                  username: taykeny94@gmail
+                  password: ${{ secrets.EMAIL_PASSWORD }}
+                  server_address: smtp.gmail.com
+                  server_port: 465
+                  secure: true
+                  subject: "New Docker Image Version for Shopping Web App"
+                  to: "abatankehinde1999@gmail.com"
+                  from: Healer <taykeny94@gmail>
+                  body: "New image build: ${{ env.VERSION }}"
 
 
 
