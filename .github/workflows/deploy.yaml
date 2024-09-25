@@ -1,4 +1,4 @@
-name: sho-Cart-deployment
+name: shoe-Cart-deployment
 on: 
   push: 
     branches:
@@ -66,7 +66,7 @@ jobs:
 
       - name: "Deploy Application via Helm"
         run: |
-          helm upgrade --install shopping ./shopping -f shopping/values.yaml \
+          helm upgrade --install shoe-cart ./shoe-cart -f ./shoe-cart/values.yaml \ 
             --set image.tag=${{ env.VERSION }} \
             --set replicaCount=3
             

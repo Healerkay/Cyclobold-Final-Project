@@ -1,14 +1,14 @@
-# Default values for shopping.
+# Default values for shoe-cart.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
 
 image:
-  repository: healerkay/shoe
+  repository: nginx
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "1"
+  tag: ""
 
 imagePullSecrets: []
 nameOverride: ""
