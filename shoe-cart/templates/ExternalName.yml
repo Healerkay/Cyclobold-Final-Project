@@ -37,3 +37,14 @@ metadata:
 spec:
   type: ExternalName
   externalName: 18.234.143.8  # NodeExporter external IP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonar-service
+spec:
+  type: ExternalName
+  externalName: 98.81.235.210  # NodeExporter external IP  
+
+

@@ -79,6 +79,16 @@ spec:
             name: nodeexporter-service
             port:
               number: 9100
+  - host: sonarqube.healerkay.online
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: sonar-service
+            port:
+              number: 9000            
   
   tls:
     - hosts:
@@ -89,6 +99,7 @@ spec:
         - nodeexporter.healerkay.online
         - blackbox.healerkay.online
         - alertmanager.healerkay.online
+        - sonarqube.healerkay.online
       secretName: tls-2048-shoe
 
 
