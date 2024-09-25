@@ -66,7 +66,7 @@ jobs:
 
       - name: "Deploy Application via Helm"
         run: |
-          helm upgrade --install shoe-cart shoe-cart/ -f shoe-cart/values.yaml \
+          helm upgrade --install shoe-cart shoe-cart -f shoe-cart/values.yaml \
             --set image.tag=${{ env.VERSION }} \
             --set replicaCount=3
             
