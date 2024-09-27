@@ -11,8 +11,12 @@ Docker for Containerization
 Amazon Route 53 for DNS Management
 
 MySQL for Database
+![relatives](./images/shoe.png)
 
-![relatives](./images/Screenshot%202024-08-24%20at%2023.26.42.png)
+
+![relatives](./images/Screenshot%202024-09-24%20at%2000.58.17.png) 
+
+
 
 phpMyAdmin for Database Management
 
@@ -28,7 +32,9 @@ Sonarqube for continous integration && Testing
 
 Prometheus && grafana
 
-![relatives](./images/Screenshot%202024-08-25%20at%2000.10.50.png)
+![relatives](./images/grafana.png)  
+
+![relatives](./images/prometheus.png)
 
 - Setup to deploy on Aws Eks
 - write a docker compose file and build an image of it
@@ -41,8 +47,10 @@ Prometheus && grafana
 create your configuration file (.yaml) in the workflows directory
 choose a deployment strategies, here we are using rolling update deployment strategy
 write your configuration files and add necessary credentials to your secrets
-deploy your application
-img
+deploy your application  
+
+Sonarqube Analysis
+![relatives](./images/sonarqube.png)
 
 - setup for ingress and cert-manager
 - Add ingress controller repo
@@ -50,9 +58,10 @@ img
 - Add the cert-issuer configuration file
 - configure the ingress controller
 
-This project follows principle of devops
-Continuous integration - using Github/actions
-img
+This project follows principle of devops  
+
+Alert Manager 
+![relatives](./images/alertmangaer.png)
 
 Continous deployment/delivery - using gitops tool (ArgoCD)
 
@@ -62,4 +71,4 @@ Continous deployment/delivery - using gitops tool (ArgoCD)
 Project status
 project is complete
 Contact
-Created by @Thecloudsavvy - feel free to contact me!#
+Created by @HealerKay - feel free to contact me!#
